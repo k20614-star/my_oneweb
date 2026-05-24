@@ -202,7 +202,10 @@ textarea{resize:vertical;min-height:64px;line-height:1.5;font-family:inherit}
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg>
       BRAND LAB
     </div>
+    <div style="display:flex;align-items:center;gap:10px">
     <div class="app-header-right" id="headerRight">창업 브랜드 세팅 진단</div>
+    <button onclick="resetKey()" style="background:rgba(255,255,255,.15);border:none;color:#93C5FD;font-size:10px;padding:3px 8px;border-radius:5px;cursor:pointer">API키 변경</button>
+  </div>
   </div>
   <div class="card">
 
@@ -479,6 +482,27 @@ textarea{resize:vertical;min-height:64px;line-height:1.5;font-family:inherit}
 </div>
 
 <script>
+// ══════════════════════════════════════
+// API 키 설정 — console.anthropic.com에서 발급 후 아래에 붙여넣기
+// ══════════════════════════════════════
+let API_KEY = localStorage.getItem('bl_apikey') || '';
+
+function checkApiKey(){
+  if(!API_KEY){
+    const k=prompt('Anthropic API 키를 입력해주세요.\nconsole.anthropic.com에서 발급 가능합니다.');
+    if(k&&k.trim().startsWith('sk-')){
+      API_KEY=k.trim();
+      localStorage.setItem('bl_apikey',API_KEY);
+    } else if(k){
+      alert('올바른 API 키 형식이 아닙니다. sk- 로 시작해야 합니다.');
+      return false;
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
+
 const FIELDS=["idea_1","market_2","market_3","market_4","market_6","brand_1","brand_2","online_1","online_2","online_3","online_4","launch_1","launch_2"];
 const LABELS={idea_1:"브랜드 이름 및 로고 후보 선정",market_2:"동일·유사 상표 검토",market_3:"도메인 확보",market_4:"SNS 아이디 확보",market_6:"국내외 포털 유사 상품명 실태 조사",brand_1:"브랜드 네임·디자인 확정",brand_2:"브랜드 가이드북 제작",online_1:"홈페이지 제작",online_2:"SNS 채널 개설 및 세팅",online_3:"네이버 플레이스 등록",online_4:"SEO 키워드 세팅",launch_1:"사업자등록",launch_2:"통신판매업 신고"};
 const SECTIONS=[{label:"① 아이디어 구상",ids:["idea_1"]},{label:"② 시장 조사",ids:["market_2","market_3","market_4","market_6"]},{label:"③ 브랜드 네임·디자인 확정",ids:["brand_1","brand_2"]},{label:"④ 온라인 채널 세팅",ids:["online_1","online_2","online_3","online_4"]},{label:"⑤ 런칭",ids:["launch_1","launch_2"]}];
@@ -551,7 +575,8 @@ JSON만 응답(마크다운 없이):
 {"summary":"2문장 요약","urgentCount":숫자,"urgentItems":["항목명"],"cautionItems":["항목명"],"safeItems":["항목명"],"items":[{"id":"필드명","risk":"높음|중간|낮음|—","actionMain":"구체적 행동","actionSub":"이유","deadline":"즉시|1주 이내|런칭 전|오픈 시|홈페이지 전|온라인 판매 전|매출 전|완료","urgent":true|false}]}
 완료=risk:"—",deadline:"완료". ${FIELDS.length}개 모두 포함.`;
   try{
-    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
+    if(!checkApiKey())return;
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,messages:[{role:"user",content:prompt}]})});
     const data=await res.json();
     const raw=(data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
     let parsed=null;
@@ -693,6 +718,14 @@ function submitForm(completePage, fromPage){
   showPage(completePage);
 }
 
+function resetKey(){
+  const k=prompt('새 API 키를 입력해주세요.');
+  if(k&&k.trim().startsWith('sk-')){
+    API_KEY=k.trim();
+    localStorage.setItem('bl_apikey',API_KEY);
+    alert('API 키가 변경됐습니다.');
+  }
+}
 function resetForm(){
   document.getElementById('brandName').value='';
   document.getElementById('bizType').value='';
